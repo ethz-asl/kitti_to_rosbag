@@ -1,6 +1,16 @@
-#include "kitti_to_rosbag/kitty_parser.h"
+#include <iostream>
+#include <fstream>
+
+#include "kitti_to_rosbag/kitti_parser.h"
 
 namespace kitti {
+
+const std::string KittiParser::kCamToVelCalibrationFilename =
+    "calib_velo_to_cam.txt";
+const std::string KittiParser::kCamToCamCalibrationFilename =
+    "calib_cam_to_cam.txt";
+const std::string KittiParser::kImuToVelCalibrationFilename =
+    "calib_imu_to_velo.txt";
 
 bool KittiParser::loadCamToVelCalibration() {
   std::string filename = calibration_path_ + kCamToVelCalibrationFilename;
@@ -30,7 +40,7 @@ bool KittiParser::loadCamToVelCalibration() {
       // Parse the translation matrix.
       if (parseVectorOfDoubles(data, &parsed_doubles)) {
         Eigen::Vector3d T(parsed_doubles.data());
-        T_cam0_vel_.getTranslation() = T;
+        T_cam0_vel_.getPosition() = T;
       }
     }
   }
@@ -48,10 +58,7 @@ bool KittiParser::parseVectorOfDoubles(const std::string& input,
     return false;
   }
 
-  for (size_t i = 0; i < num_columns; ++i) {
-    if (line_stream.eof()) {
-      return false;
-    }
+  while (!line_stream.eof()) {
     std::string element;
     std::getline(line_stream, element, ' ');
     try {

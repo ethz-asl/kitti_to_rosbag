@@ -45,12 +45,9 @@ typedef std::vector<CameraCalibration,
 class KittiParser {
  public:
   // Constants for filenames for calibration files.
-  static const std::string kCamToVelCalibrationFilename =
-      "calib_velo_to_cam.txt";
-  static const std::string kCamToCamCalibrationFilename =
-      "calib_cam_to_cam.txt";
-  static const std::string kImuToVelCalibrationFilename =
-      "calib_imu_to_velo.txt";
+  static const std::string kCamToVelCalibrationFilename;
+  static const std::string kCamToCamCalibrationFilename;
+  static const std::string kImuToVelCalibrationFilename;
 
   KittiParser(const std::string& calibration_path,
               const std::string& dataset_path, bool rectified);
@@ -81,7 +78,7 @@ class KittiParser {
   Transformation T_cam0_vel() const;
   Transformation T_vel_imu() const;
 
-  // HELPER FUNCTIONS: in case you need to do something more specific.
+ private:
   bool loadCamToCamCalibration();
   bool loadCamToVelCalibration();
   bool loadVelToImuCalibration();
@@ -90,7 +87,9 @@ class KittiParser {
 
   void loadImage();
 
- private:
+  bool parseVectorOfDoubles(const std::string& input,
+                            std::vector<double>* output);
+
   // Base paths.
   std::string calibration_path_;
   std::string dataset_path_;
