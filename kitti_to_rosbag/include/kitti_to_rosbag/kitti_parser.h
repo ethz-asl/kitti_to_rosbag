@@ -44,6 +44,14 @@ typedef std::vector<CameraCalibration,
 
 class KittiParser {
  public:
+  // Constants for filenames for calibration files.
+  static const std::string kCamToVelCalibrationFilename =
+      "calib_velo_to_cam.txt";
+  static const std::string kCamToCamCalibrationFilename =
+      "calib_cam_to_cam.txt";
+  static const std::string kImuToVelCalibrationFilename =
+      "calib_imu_to_velo.txt";
+
   KittiParser(const std::string& calibration_path,
               const std::string& dataset_path, bool rectified);
 
