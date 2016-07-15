@@ -357,6 +357,8 @@ bool KittiParser::loadTimestampsIntoVector(
     timestamp_vec->push_back(timestamp);
   }
 
+  std::cout << "Timestamps: " << std::endl << *timestamp_vec << std::endl;
+
   return true;
 }
 
