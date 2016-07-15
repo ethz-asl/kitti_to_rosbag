@@ -24,7 +24,8 @@ KittiParser::KittiParser(const std::string& calibration_path,
                          const std::string& dataset_path, bool rectified)
     : calibration_path_(calibration_path),
       dataset_path_(dataset_path),
-      rectified_(rectified) {}
+      rectified_(rectified),
+      initial_pose_set_(false) {}
 
 bool KittiParser::loadCalibration() {
   loadVelToCamCalibration();
@@ -186,16 +187,7 @@ bool KittiParser::loadCamToCamCalibration() {
         }
       }
       continue;
-    } /* else if (!rectified_ && header.compare(0, 2, "R_") == 0) {
-      int index = std::stoi(header.substr(3));
-      if (camera_calibrations_.size() <= index) {
-        camera_calibrations_.resize(index + 1);
-      }
-      if (parseVectorOfDoubles(data, &parsed_doubles)) {
-        camera_calibrations_[index].rect_mat =
-            Eigen::Matrix3d(parsed_doubles.data()).transpose();
-      }
-    } */
+    }
 
     // Projection mat.
     if (header.compare(0, 6, "P_rect") == 0) {
@@ -282,7 +274,6 @@ bool KittiParser::loadCamToCamCalibration() {
       continue;
     }
   }
-  // std::cout << "T_vel_imu:\n" << T_vel_imu_ << std::endl;
   return true;
 }
 
@@ -327,8 +318,8 @@ void KittiParser::loadTimestampMaps() {
     char buffer[8];
     sprintf(buffer, "%02d", i);
 
-    filename =
-        dataset_path_ + "/" + kCameraFolder + buffer + "/" + kTimestampFilename;
+    filename = dataset_path_ + "/" + getFolderNameForCamera(i) + "/" +
+               kTimestampFilename;
     loadTimestampsIntoVector(filename, &timestamps_cam_ns_[i]);
   }
 }
@@ -364,4 +355,102 @@ bool KittiParser::loadTimestampsIntoVector(
   return true;
 }
 
-}  // namespace kitty
+bool KittiParser::getPoseAtEntry(uint64_t entry, uint64_t* timestamp,
+                                 Transformation* pose) {
+  std::string filename = dataset_path_ + "/" + kPoseFolder + "/" + kDataFolder +
+                         "/" + getFilenameForEntry(entry);
+
+  std::ifstream import_file(filename, std::ios::in);
+  if (!import_file) {
+    return false;
+  }
+  if (timestamps_pose_ns_.size() <= entry) {
+    return false;
+  }
+  *timestamp = timestamps_pose_ns_[entry];
+
+  std::string line;
+  std::vector<double> parsed_doubles;
+  while (std::getline(import_file, line)) {
+    if (parseVectorOfDoubles(line, &parsed_doubles)) {
+      if (convertGpsToPose(parsed_doubles, pose)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// From the MATLAB raw data dev kit.
+bool KittiParser::convertGpsToPose(const std::vector<double>& oxts,
+                                   Transformation* pose) {
+  if (oxts.size() < 6) {
+    return false;
+  }
+
+  double lat = oxts[0];
+  double lon = oxts[1];
+  double alt = oxts[2];
+
+  double roll = oxts[3];
+  double pitch = oxts[4];
+  double yaw = oxts[5];
+
+  // Position.
+  if (!initial_pose_set_) {
+    mercator_scale_ = latToScale(lat);
+  }
+  Eigen::Vector2d mercator;
+  latlonToMercator(lat, lon, mercator_scale_, &mercator);
+  Eigen::Vector3d position(mercator.x(), mercator.y(), alt);
+
+  // Rotation.
+  const Eigen::AngleAxisd axis_roll(roll, Eigen::Vector3d::UnitX());
+  const Eigen::AngleAxisd axis_pitch(pitch, Eigen::Vector3d::UnitY());
+  const Eigen::AngleAxisd axis_yaw(yaw, Eigen::Vector3d::UnitZ());
+
+  Eigen::Quaterniond rotation = axis_yaw * axis_pitch * axis_roll;
+
+  Transformation transform(position, rotation);
+
+  // Undo the initial transformation, if one is set.
+  // If not, set it.
+  // The transformation only undoes translation and yaw, not roll and pitch
+  // (as these are observable from the gravity vector).
+  if (!initial_pose_set_) {
+    T_initial_pose_.getPosition() = transform.getPosition();
+    T_initial_pose_.getRotation() = Rotation(axis_yaw);
+    initial_pose_set_ = true;
+  }
+  // Get back to local coordinates.
+  *pose = T_initial_pose_.inverse() * transform;
+
+  return true;
+}
+
+// From the MATLAB raw data dev kit.
+double KittiParser::latToScale(double lat) const {
+  return cos(lat * M_PI / 180.0);
+}
+
+// From the MATLAB raw data dev kit.
+void KittiParser::latlonToMercator(double lat, double lon, double scale,
+                                   Eigen::Vector2d* mercator) const {
+  double er = 6378137;
+  mercator->x() = scale * lon * M_PI * er / 180.0;
+  mercator->y() = scale * er * log(tan((90.0 + lat) * M_PI / 360.0));
+}
+
+std::string KittiParser::getFolderNameForCamera(int cam_number) const {
+  char buffer[8];
+  sprintf(buffer, "%s%02d", kCameraFolder.c_str(), cam_number);
+  return std::string(buffer);
+}
+
+std::string KittiParser::getFilenameForEntry(uint64_t entry) const {
+  char buffer[20];
+  sprintf(buffer, "%010llu", entry);
+  return std::string(buffer);
+}
+
+}  // namespace kitti

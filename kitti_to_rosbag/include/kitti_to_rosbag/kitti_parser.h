@@ -63,9 +63,14 @@ class KittiParser {
   void loadTimestampMaps();
 
   // Load specific entries (indexed by filename).
-  bool getPoseAtEntry();
-  bool getGpsAtEntry();
-  bool getImuAtEntry();
+  bool getPoseAtEntry(uint64_t entry, uint64_t* timestamp,
+                      Transformation* pose);
+  bool getGpsAtEntry() { /* TODO! */
+    return false;
+  }
+  bool getImuAtEntry() { /* TODO! */
+    return false;
+  }
   bool getPointcloudAtEntry();
   bool getImageAtEntry();
 
@@ -78,7 +83,7 @@ class KittiParser {
 
   // Returns the nanosecond timestamp since epoch for a particular entry.
   // Returns -1 if no valid timestamp is found.
-  int64_t getTimestampNsAtEntry(int64_t entry) const;
+  // int64_t getTimestampNsAtEntry(int64_t entry) const;
 
   // Basic accessors.
   Transformation T_cam0_vel() const;
@@ -89,7 +94,10 @@ class KittiParser {
   bool loadVelToCamCalibration();
   bool loadImuToVelCalibration();
 
-  void convertGpsToPose();
+  bool convertGpsToPose(const std::vector<double>& oxts, Transformation* pose);
+  double latToScale(double lat) const;
+  void latlonToMercator(double lat, double lon, double scale,
+                        Eigen::Vector2d* mercator) const;
   void loadImage();
 
   bool loadTimestampsIntoVector(const std::string& filename,
@@ -97,6 +105,9 @@ class KittiParser {
 
   bool parseVectorOfDoubles(const std::string& input,
                             std::vector<double>* output) const;
+
+  std::string getFolderNameForCamera(int cam_number) const;
+  std::string getFilenameForEntry(uint64_t entry) const;
 
   // Base paths.
   std::string calibration_path_;
@@ -118,6 +129,12 @@ class KittiParser {
   std::vector<uint64_t> timestamps_pose_ns_;
   // Vector of camera timestamp vectors.
   std::vector<std::vector<uint64_t> > timestamps_cam_ns_;
+
+  // Cached pose information, to correct to odometry frame (instead of absolute
+  // world coordinates).
+  bool initial_pose_set_;
+  Transformation T_initial_pose_;
+  double mercator_scale_;
 };
 }
 
