@@ -315,9 +315,6 @@ void KittiParser::loadTimestampMaps() {
   // One per camera.
   timestamps_cam_ns_.resize(camera_calibrations_.size());
   for (int i = 0; i < camera_calibrations_.size(); ++i) {
-    char buffer[8];
-    sprintf(buffer, "%02d", i);
-
     filename = dataset_path_ + "/" + getFolderNameForCamera(i) + "/" +
                kTimestampFilename;
     loadTimestampsIntoVector(filename, &timestamps_cam_ns_[i]);
@@ -358,7 +355,9 @@ bool KittiParser::loadTimestampsIntoVector(
 bool KittiParser::getPoseAtEntry(uint64_t entry, uint64_t* timestamp,
                                  Transformation* pose) {
   std::string filename = dataset_path_ + "/" + kPoseFolder + "/" + kDataFolder +
-                         "/" + getFilenameForEntry(entry);
+                         "/" + getFilenameForEntry(entry) + ".txt";
+
+  std::cout << "FIlename: " << filename << std::endl;
 
   std::ifstream import_file(filename, std::ios::in);
   if (!import_file) {
@@ -372,6 +371,7 @@ bool KittiParser::getPoseAtEntry(uint64_t entry, uint64_t* timestamp,
   std::string line;
   std::vector<double> parsed_doubles;
   while (std::getline(import_file, line)) {
+    std::cout << "Line: " << line << std::endl;
     if (parseVectorOfDoubles(line, &parsed_doubles)) {
       if (convertGpsToPose(parsed_doubles, pose)) {
         return true;
@@ -442,7 +442,7 @@ void KittiParser::latlonToMercator(double lat, double lon, double scale,
 }
 
 std::string KittiParser::getFolderNameForCamera(int cam_number) const {
-  char buffer[8];
+  char buffer[20];
   sprintf(buffer, "%s%02d", kCameraFolder.c_str(), cam_number);
   return std::string(buffer);
 }

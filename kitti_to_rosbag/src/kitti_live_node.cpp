@@ -17,6 +17,12 @@ int main(int argc, char** argv) {
   parser.loadCalibration();
   parser.loadTimestampMaps();
 
+  uint64_t timestamp;
+  kitti::Transformation pose;
+  parser.getPoseAtEntry(0, &timestamp, &pose);
+
+  std::cout << "Timestamp: " << timestamp << " Pose: " << pose << std::endl;
+
   ros::spin();
   return 0;
 }
