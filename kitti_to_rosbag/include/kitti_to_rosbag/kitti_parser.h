@@ -19,7 +19,7 @@ struct CameraCalibration {
 
   // Intrinsics.
   Eigen::Vector2d image_size;                  // S_xx in calibration.
-  Eigen::Matrix3d rect_mat;                    // R_xx in calibration.
+  Eigen::Matrix3d rect_mat;                    // R_rect_xx in calibration.
   Eigen::Matrix<double, 3, 4> projection_mat;  // P_xx in calibration.
 
   // Unrectified (raw) intrinsics. Should only be used if rectified set to
@@ -48,6 +48,11 @@ class KittiParser {
   static const std::string kVelToCamCalibrationFilename;
   static const std::string kCamToCamCalibrationFilename;
   static const std::string kImuToVelCalibrationFilename;
+  static const std::string kVelodyneFolder;
+  static const std::string kCameraFolder;
+  static const std::string kPoseFolder;
+  static const std::string kTimestampFilename;
+  static const std::string kDataFolder;
 
   KittiParser(const std::string& calibration_path,
               const std::string& dataset_path, bool rectified);
@@ -55,6 +60,7 @@ class KittiParser {
   // MAIN API: all you should need to use!
   // Loading calibration files.
   bool loadCalibration();
+  void loadTimestampMaps();
 
   // Load specific entries (indexed by filename).
   bool getPoseAtEntry();
@@ -84,11 +90,13 @@ class KittiParser {
   bool loadImuToVelCalibration();
 
   void convertGpsToPose();
-
   void loadImage();
 
+  bool loadTimestampsIntoVector(const std::string& filename,
+                                std::vector<uint64_t>* timestamp_vec) const;
+
   bool parseVectorOfDoubles(const std::string& input,
-                            std::vector<double>* output);
+                            std::vector<double>* output) const;
 
   // Base paths.
   std::string calibration_path_;
@@ -106,7 +114,10 @@ class KittiParser {
   Transformation T_vel_imu_;
 
   // Timestamp map from index to nanoseconds.
-  std::map<uint64_t, uint64_t> timestamp_map_ns_;
+  std::vector<uint64_t> timestamps_vel_ns_;
+  std::vector<uint64_t> timestamps_pose_ns_;
+  // Vector of camera timestamp vectors.
+  std::vector<std::vector<uint64_t> > timestamps_cam_ns_;
 };
 }
 

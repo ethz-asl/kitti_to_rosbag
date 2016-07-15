@@ -12,9 +12,10 @@ int main(int argc, char** argv) {
 
   kitti::KittiParser parser(
       "/Users/helen/data/kitti/2011_09_26",
-      "/Users/helen/data/kitti/2011_09_26/2011_09_26_drive_0035_sync", false);
+      "/Users/helen/data/kitti/2011_09_26/2011_09_26_drive_0035_sync", true);
 
   parser.loadCalibration();
+  parser.loadTimestampMaps();
 
   ros::spin();
   return 0;
