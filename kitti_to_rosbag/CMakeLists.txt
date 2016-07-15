@@ -17,10 +17,10 @@ cs_add_library(${PROJECT_NAME}
 ############
 # BINARIES #
 ############
-#cs_add_executable(voxblox_rox
-#  src/voxblox.cc
-#)
-#target_link_libraries(voxblox_rox ${PROJECT_NAME})
+cs_add_executable(kitti_live_node
+  src/kitti_live_node.cpp
+)
+target_link_libraries(kitti_live_node ${PROJECT_NAME})
 
 
 ##########

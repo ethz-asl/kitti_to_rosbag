@@ -12,9 +12,24 @@ const std::string KittiParser::kCamToCamCalibrationFilename =
 const std::string KittiParser::kImuToVelCalibrationFilename =
     "calib_imu_to_velo.txt";
 
+KittiParser::KittiParser(const std::string& calibration_path,
+                         const std::string& dataset_path, bool rectified)
+    : calibration_path_(calibration_path),
+      dataset_path_(dataset_path),
+      rectified_(rectified) {}
+
+bool KittiParser::loadCalibration() {
+  loadCamToVelCalibration();
+  return true;
+}
+
 bool KittiParser::loadCamToVelCalibration() {
-  std::string filename = calibration_path_ + kCamToVelCalibrationFilename;
+  std::string filename = calibration_path_ + "/" + kCamToVelCalibrationFilename;
   std::ifstream import_file(filename, std::ios::in);
+
+  if (!import_file) {
+    return false;
+  }
 
   std::string line;
   while (std::getline(import_file, line)) {
@@ -45,7 +60,6 @@ bool KittiParser::loadCamToVelCalibration() {
     }
   }
   // How do we return false?
-
   return true;
 }
 
@@ -61,6 +75,9 @@ bool KittiParser::parseVectorOfDoubles(const std::string& input,
   while (!line_stream.eof()) {
     std::string element;
     std::getline(line_stream, element, ' ');
+    if (element.size() == 0) {
+      continue;
+    }
     try {
       output->emplace_back(std::stod(element));
     } catch (const std::exception& exception) {
