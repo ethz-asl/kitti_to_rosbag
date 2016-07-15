@@ -347,7 +347,7 @@ bool KittiParser::loadTimestampsIntoVector(
 
     std::string timestamp_string = line_stream.str();
     std::tm t = {};
-    line_stream >> std::get_time(&t, "%Y-%b-%d %H:%M:%S");
+    line_stream >> std::get_time(&t, "%Y-%m-%d %H:%M:%S");
 
     static const uint64_t kSecondsToNanoSeconds = 1e9;
     time_t time_since_epoch = mktime(&t);
@@ -357,7 +357,9 @@ bool KittiParser::loadTimestampsIntoVector(
     timestamp_vec->push_back(timestamp);
   }
 
-  std::cout << "Timestamps: " << std::endl << *timestamp_vec << std::endl;
+  std::cout << "Timestamps: " << std::endl
+            << timestamp_vec->front() << " " << timestamp_vec->back()
+            << std::endl;
 
   return true;
 }
