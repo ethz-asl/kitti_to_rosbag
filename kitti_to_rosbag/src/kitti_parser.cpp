@@ -5,7 +5,7 @@
 
 namespace kitti {
 
-const std::string KittiParser::kCamToVelCalibrationFilename =
+const std::string KittiParser::kVelToCamCalibrationFilename =
     "calib_velo_to_cam.txt";
 const std::string KittiParser::kCamToCamCalibrationFilename =
     "calib_cam_to_cam.txt";
@@ -19,12 +19,13 @@ KittiParser::KittiParser(const std::string& calibration_path,
       rectified_(rectified) {}
 
 bool KittiParser::loadCalibration() {
-  loadCamToVelCalibration();
+  loadVelToCamCalibration();
+  loadImuToVelCalibration();
   return true;
 }
 
-bool KittiParser::loadCamToVelCalibration() {
-  std::string filename = calibration_path_ + "/" + kCamToVelCalibrationFilename;
+bool KittiParser::loadVelToCamCalibration() {
+  std::string filename = calibration_path_ + "/" + kVelToCamCalibrationFilename;
   std::ifstream import_file(filename, std::ios::in);
 
   if (!import_file) {
@@ -39,7 +40,6 @@ bool KittiParser::loadCamToVelCalibration() {
     // a header followed by a ':' followed by space-separated data.
     std::string header;
     std::getline(line_stream, header, ':');
-
     std::string data;
     std::getline(line_stream, data, ':');
 
@@ -49,7 +49,11 @@ bool KittiParser::loadCamToVelCalibration() {
       // Parse the rotation matrix.
       if (parseVectorOfDoubles(data, &parsed_doubles)) {
         Eigen::Matrix3d R(parsed_doubles.data());
-        T_cam0_vel_.getRotation() = Rotation::fromApproximateRotationMatrix(R);
+        // All matrices are written row-major but Eigen is column-major
+        // (can swap this, but I guess it's anyway easier to just transpose
+        // for these small matrices).
+        T_cam0_vel_.getRotation() =
+            Rotation::fromApproximateRotationMatrix(R.transpose());
       }
     } else if (header.compare("T") == 0) {
       // Parse the translation matrix.
@@ -59,7 +63,51 @@ bool KittiParser::loadCamToVelCalibration() {
       }
     }
   }
+  std::cout << "T_cam0_vel:\n" << T_cam0_vel_ << std::endl;
   // How do we return false?
+  return true;
+}
+
+bool KittiParser::loadImuToVelCalibration() {
+  std::string filename = calibration_path_ + "/" + kImuToVelCalibrationFilename;
+  std::ifstream import_file(filename, std::ios::in);
+
+  if (!import_file) {
+    return false;
+  }
+
+  std::string line;
+  while (std::getline(import_file, line)) {
+    std::stringstream line_stream(line);
+
+    // Check what the header is. Each line consists of two parts:
+    // a header followed by a ':' followed by space-separated data.
+    std::string header;
+    std::getline(line_stream, header, ':');
+    std::string data;
+    std::getline(line_stream, data, ':');
+
+    std::vector<double> parsed_doubles;
+    // Compare all header possibilities...
+    if (header.compare("R") == 0) {
+      // Parse the rotation matrix.
+      if (parseVectorOfDoubles(data, &parsed_doubles)) {
+        Eigen::Matrix3d R(parsed_doubles.data());
+        // All matrices are written row-major but Eigen is column-major
+        // (can swap this, but I guess it's anyway easier to just transpose
+        // for these small matrices).
+        T_vel_imu_.getRotation() =
+            Rotation::fromApproximateRotationMatrix(R.transpose());
+      }
+    } else if (header.compare("T") == 0) {
+      // Parse the translation matrix.
+      if (parseVectorOfDoubles(data, &parsed_doubles)) {
+        Eigen::Vector3d T(parsed_doubles.data());
+        T_vel_imu_.getPosition() = T;
+      }
+    }
+  }
+  std::cout << "T_vel_imu:\n" << T_vel_imu_ << std::endl;
   return true;
 }
 
@@ -75,7 +123,7 @@ bool KittiParser::parseVectorOfDoubles(const std::string& input,
   while (!line_stream.eof()) {
     std::string element;
     std::getline(line_stream, element, ' ');
-    if (element.size() == 0) {
+    if (element.empty()) {
       continue;
     }
     try {

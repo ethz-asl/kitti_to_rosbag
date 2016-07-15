@@ -45,7 +45,7 @@ typedef std::vector<CameraCalibration,
 class KittiParser {
  public:
   // Constants for filenames for calibration files.
-  static const std::string kCamToVelCalibrationFilename;
+  static const std::string kVelToCamCalibrationFilename;
   static const std::string kCamToCamCalibrationFilename;
   static const std::string kImuToVelCalibrationFilename;
 
@@ -80,8 +80,8 @@ class KittiParser {
 
  private:
   bool loadCamToCamCalibration();
-  bool loadCamToVelCalibration();
-  bool loadVelToImuCalibration();
+  bool loadVelToCamCalibration();
+  bool loadImuToVelCalibration();
 
   void convertGpsToPose();
 
