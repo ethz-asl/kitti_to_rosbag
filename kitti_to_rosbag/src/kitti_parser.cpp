@@ -260,7 +260,8 @@ bool KittiParser::loadCamToCamCalibration() {
         // All matrices are written row-major but Eigen is column-major
         // (can swap this, but I guess it's anyway easier to just transpose
         // for these small matrices).
-        camera_calibrations_[index].R = R.transpose();
+        camera_calibrations_[index].T_cam0_cam.getRotation() =
+            Rotation::fromApproximateRotationMatrix(R.transpose());
       }
       continue;
     } else if (header.compare(0, 1, "T") == 0) {
@@ -271,7 +272,7 @@ bool KittiParser::loadCamToCamCalibration() {
       // Parse the translation matrix.
       if (parseVectorOfDoubles(data, &parsed_doubles)) {
         Eigen::Vector3d T(parsed_doubles.data());
-        camera_calibrations_[index].T = T;
+        camera_calibrations_[index].T_cam0_cam.getPosition() = T;
       }
       continue;
     }
