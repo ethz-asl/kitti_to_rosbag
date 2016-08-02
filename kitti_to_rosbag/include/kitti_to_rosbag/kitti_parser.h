@@ -9,6 +9,7 @@
 #include <kindr/minimal/quat-transformation.h>
 #include <pcl/point_types.h>
 #include <pcl/conversions.h>
+#include <opencv2/core/core.hpp>
 
 namespace kitti {
 
@@ -75,7 +76,8 @@ class KittiParser {
   }
   bool getPointcloudAtEntry(uint64_t entry, uint64_t* timestamp,
                             pcl::PointCloud<pcl::PointXYZI>* ptcloud);
-  bool getImageAtEntry();
+  bool getImageAtEntry(uint64_t cam_id, uint64_t entry, uint64_t* timestamp,
+                       cv::Mat* image);
 
   bool getCameraCalibration();
   bool getCameraIntrinsics();
@@ -101,8 +103,6 @@ class KittiParser {
   double latToScale(double lat) const;
   void latlonToMercator(double lat, double lon, double scale,
                         Eigen::Vector2d* mercator) const;
-  void loadImage();
-
   bool loadTimestampsIntoVector(const std::string& filename,
                                 std::vector<uint64_t>* timestamp_vec) const;
 

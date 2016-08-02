@@ -1,4 +1,5 @@
 #include <ros/ros.h>
+#include <opencv2/highgui/highgui.hpp>
 
 #include "kitti_to_rosbag/kitti_parser.h"
 
@@ -22,6 +23,18 @@ int main(int argc, char** argv) {
   parser.getPoseAtEntry(0, &timestamp, &pose);
 
   std::cout << "Timestamp: " << timestamp << " Pose: " << pose << std::endl;
+
+  pcl::PointCloud<pcl::PointXYZI> ptcloud;
+  parser.getPointcloudAtEntry(0, &timestamp, &ptcloud);
+
+  std::cout << "Timestamp: " << timestamp << " Num points: " << ptcloud.size()
+            << std::endl;
+
+  cv::Mat image;
+  parser.getImageAtEntry(3, 0, &timestamp, &image);
+
+  cv::imshow("Display window", image);
+  cv::waitKey(0);
 
   ros::spin();
   return 0;

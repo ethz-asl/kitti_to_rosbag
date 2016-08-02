@@ -2,6 +2,8 @@
 #include <fstream>
 #include <iomanip>
 
+#include <opencv2/highgui/highgui.hpp>
+
 #include "kitti_to_rosbag/kitti_parser.h"
 
 namespace kitti {
@@ -416,6 +418,29 @@ bool KittiParser::getPointcloudAtEntry(
     ptcloud->push_back(point);
   }
   input.close();
+  return true;
+}
+
+bool KittiParser::getImageAtEntry(uint64_t cam_id, uint64_t entry,
+                                  uint64_t* timestamp, cv::Mat* image) {
+  // Get the timestamp for this first.
+  if (timestamps_cam_ns_.size() <= cam_id ||
+      timestamps_cam_ns_[cam_id].size() <= entry) {
+    std::cout << "Warning: no timestamp for this entry!\n";
+    return false;
+  }
+  *timestamp = (timestamps_cam_ns_[cam_id])[entry];
+
+  std::string filename = dataset_path_ + "/" + getFolderNameForCamera(cam_id) +
+                         "/" + kDataFolder + "/" + getFilenameForEntry(entry) +
+                         ".png";
+
+  *image = cv::imread(filename, CV_LOAD_IMAGE_UNCHANGED);
+
+  if (!image->data) {
+    std::cout << "Could not load image data.\n";
+    return false;
+  }
   return true;
 }
 
