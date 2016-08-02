@@ -357,7 +357,7 @@ bool KittiParser::getPoseAtEntry(uint64_t entry, uint64_t* timestamp,
   std::string filename = dataset_path_ + "/" + kPoseFolder + "/" + kDataFolder +
                          "/" + getFilenameForEntry(entry) + ".txt";
 
-  std::cout << "FIlename: " << filename << std::endl;
+  std::cout << "Filename: " << filename << std::endl;
 
   std::ifstream import_file(filename, std::ios::in);
   if (!import_file) {
@@ -379,6 +379,44 @@ bool KittiParser::getPoseAtEntry(uint64_t entry, uint64_t* timestamp,
     }
   }
   return false;
+}
+
+bool KittiParser::getPointcloudAtEntry(
+    uint64_t entry, uint64_t* timestamp,
+    pcl::PointCloud<pcl::PointXYZI>* ptcloud) {
+  // Get the timestamp for this first.
+  if (timestamps_vel_ns_.size() <= entry) {
+    std::cout << "Warning: no timestamp for this entry!\n";
+    return false;
+  }
+
+  *timestamp = timestamps_vel_ns_[entry];
+
+  // Load the actual pointcloud.
+  const size_t kMaxNumberOfPoints = 1e6;  // From Readme for raw files.
+  ptcloud->clear();
+  ptcloud->reserve(kMaxNumberOfPoints);
+
+  std::string filename = dataset_path_ + "/" + kVelodyneFolder + "/" +
+                         kDataFolder + "/" + getFilenameForEntry(entry) +
+                         ".bin";
+
+  std::ifstream input(filename, std::ios::in | std::ios::binary);
+  if (!input) {
+    std::cout << "Could not open pointcloud file.\n";
+    return false;
+  }
+
+  // From yanii's kitti-pcl toolkit:
+  // https://github.com/yanii/kitti-pcl/blob/master/src/kitti2pcd.cpp
+  for (size_t i = 0; input.good() && !input.eof(); i++) {
+    pcl::PointXYZI point;
+    input.read((char*)&point.x, 3 * sizeof(float));
+    input.read((char*)&point.intensity, sizeof(float));
+    ptcloud->push_back(point);
+  }
+  input.close();
+  return true;
 }
 
 // From the MATLAB raw data dev kit.

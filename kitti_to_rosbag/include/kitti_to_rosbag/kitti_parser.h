@@ -7,6 +7,8 @@
 #include <Eigen/Core>
 #include <Eigen/StdVector>
 #include <kindr/minimal/quat-transformation.h>
+#include <pcl/point_types.h>
+#include <pcl/conversions.h>
 
 namespace kitti {
 
@@ -71,7 +73,8 @@ class KittiParser {
   bool getImuAtEntry() { /* TODO! */
     return false;
   }
-  bool getPointcloudAtEntry();
+  bool getPointcloudAtEntry(uint64_t entry, uint64_t* timestamp,
+                            pcl::PointCloud<pcl::PointXYZI>* ptcloud);
   bool getImageAtEntry();
 
   bool getCameraCalibration();
