@@ -527,4 +527,16 @@ std::string KittiParser::getFilenameForEntry(uint64_t entry) const {
   return std::string(buffer);
 }
 
+Transformation KittiParser::T_camN_vel(int cam_number) const {
+  return camera_calibrations_[cam_number].T_cam0_cam.inverse() * T_cam0_vel_;
+}
+
+Transformation KittiParser::T_camN_imu(int cam_number) const {
+  return T_camN_vel(cam_number) * T_vel_imu_;
+}
+
+Transformation KittiParser::T_cam0_vel() const { return T_cam0_vel_; }
+
+Transformation KittiParser::T_vel_imu() const { return T_vel_imu_; }
+
 }  // namespace kitti

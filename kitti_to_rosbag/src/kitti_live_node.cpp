@@ -127,7 +127,9 @@ bool KittiLiveNode::publishEntry(uint64_t entry) {
   if (parser_.getPointcloudAtEntry(entry, &timestamp_ns, &pointcloud)) {
     timestampToRos(timestamp_ns, &timestamp_ros);
 
-    pointcloud.header.stamp = timestamp_ns;
+    // This value is in MICROSECONDS, not nanoseconds.
+    pointcloud.header.stamp = timestamp_ns / 1000;
+    pointcloud.header.frame_id = velodyne_frame_id_;
     pointcloud_pub_.publish(pointcloud);
   }
 
@@ -135,12 +137,29 @@ bool KittiLiveNode::publishEntry(uint64_t entry) {
 }
 
 void KittiLiveNode::publishTf(const ros::Time& timestamp_ros,
-                              const Transformation& imu_pose) {}
+                              const Transformation& imu_pose) {
+  Transformation T_imu_world = imu_pose;
+  Transformation T_vel_imu = parser_.T_vel_imu();
+  Transformation T_cam_imu = parser_.T_camN_imu(0);
+
+  tf::Transform tf_imu_world, tf_cam_imu, tf_vel_imu;
+
+  transformToTf(T_imu_world, &tf_imu_world);
+  transformToTf(T_vel_imu, &tf_vel_imu);
+  transformToTf(T_cam_imu, &tf_cam_imu);
+
+  tf_broadcaster_.sendTransform(tf::StampedTransform(
+      tf_imu_world, timestamp_ros, world_frame_id_, imu_frame_id_));
+  tf_broadcaster_.sendTransform(tf::StampedTransform(
+      tf_vel_imu, timestamp_ros, imu_frame_id_, velodyne_frame_id_));
+  tf_broadcaster_.sendTransform(
+      tf::StampedTransform(tf_cam_imu, timestamp_ros, imu_frame_id_, "cam0"));
+}
 
 }  // namespace kitti
 
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "voxblox_node");
+  ros::init(argc, argv, "kitti_live");
   google::InitGoogleLogging(argv[0]);
   google::ParseCommandLineFlags(&argc, &argv, false);
   google::InstallFailureSignalHandler();
@@ -171,8 +190,26 @@ int main(int argc, char** argv) {
   cv::Mat image;
   parser.getImageAtEntry(0, 3, &timestamp, &image);
 
-  cv::imshow("Display window", image);
-  cv::waitKey(0);
+  // cv::imshow("Display window", image);
+  // cv::waitKey(0);
+
+  kitti::KittiLiveNode node(nh, nh_private, calibration_path, dataset_path);
+
+  uint64_t entry = 0;
+
+  while (ros::ok()) {
+    if (!node.publishEntry(++entry)) {
+      break;
+    }
+
+    ros::spinOnce();
+    usleep(100000);
+    ros::spinOnce();
+
+    // ros::Duration(0.1).sleep();
+  }
+
+  ROS_INFO("Finished publishing %llu entries.", entry);
 
   ros::spin();
   return 0;

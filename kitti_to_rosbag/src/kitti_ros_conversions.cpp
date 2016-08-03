@@ -71,7 +71,9 @@ void stereoCalibrationToRos(uint64_t left_cam_id, uint64_t right_cam_id,
 void imageToRos(const cv::Mat& image, sensor_msgs::Image* image_msg) {
   cv_bridge::CvImage image_cv_bridge;
   image_cv_bridge.image = image;
-  *image_msg = *image_cv_bridge.toImageMsg();
+  // TODO!!!
+  image_cv_bridge.encoding = "mono8";
+  image_cv_bridge.toImageMsg(*image_msg);
 }
 
 void poseToRos(const Transformation& transform,
