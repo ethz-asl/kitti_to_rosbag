@@ -15,25 +15,24 @@ struct CameraCalibration {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   // Intrinsics.
-  Eigen::Vector2d image_size;                  // S_xx in calibration.
-  Eigen::Matrix3d rect_mat;                    // R_rect_xx in calibration.
-  Eigen::Matrix<double, 3, 4> projection_mat;  // P_xx in calibration.
+  Eigen::Vector2d image_size = Eigen::Vector2d::Zero();  // S_xx in calibration.
+  Eigen::Matrix3d rect_mat =
+      Eigen::Matrix3d::Identity();  // R_rect_xx in calibration.
+  Eigen::Matrix<double, 3, 4> projection_mat =
+      Eigen::Matrix<double, 3, 4>::Identity();  // P_xx in calibration.
 
   // Unrectified (raw) intrinsics. Should only be used if rectified set to
   // false.
-  Eigen::Matrix3d K;              // Camera intrinsics, K_xx in calibration.
-  Eigen::Matrix<double, 1, 5> D;  // Distortion parameters, radtan model.
+  Eigen::Matrix3d K =
+      Eigen::Matrix3d::Zero();  // Camera intrinsics, K_xx in calibration.
+  Eigen::Matrix<double, 1, 5> D =
+      Eigen::Matrix<double, 1,
+                    5>::Zero();  // Distortion parameters, radtan model.
 
   // Extrinsics.
   Transformation T_cam0_cam;
-  //Eigen::Matrix3d R;  // Rotation matrix, extrinsics, wrt 0th camera (?)
-  //Eigen::Vector3d T;  // Translation matrix, extrinsics, wrt 0th camera (?)
 
-  // Accessor for full transform. Derived from 'raw' extrinsics above.
-  //Transformation getTransformToCam0() const {
-  //  Transformation transform(Rotation::fromApproximateRotationMatrix(R), T);
-  //  return transform;
-  //}
+  bool distorted = false;
 };
 
 typedef std::vector<CameraCalibration,

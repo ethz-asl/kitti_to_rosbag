@@ -240,10 +240,11 @@ bool KittiParser::loadCamToCamCalibration() {
         if (camera_calibrations_.size() <= index) {
           camera_calibrations_.resize(index + 1);
         }
-        // Parse the translation matrix.
+        // Parse the distortion vector.
         if (parseVectorOfDoubles(data, &parsed_doubles)) {
           Eigen::Matrix<double, 1, 5> D(parsed_doubles.data());
           camera_calibrations_[index].D = D;
+          camera_calibrations_[index].distorted = !rectified_;
         }
         continue;
       }
