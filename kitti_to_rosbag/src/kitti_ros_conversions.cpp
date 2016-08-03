@@ -79,9 +79,14 @@ void poseToRos(const Transformation& transform,
   tf::poseKindrToMsg(transform, &pose_msg->pose);
 }
 
-void transformToRos(const Transformation& transform,
-                    tf::Transform* tf_transform) {
+void transformToTf(const Transformation& transform,
+                   tf::Transform* tf_transform) {
   tf::transformKindrToTF(transform, tf_transform);
+}
+
+void transformToRos(const Transformation& transform,
+                    geometry_msgs::TransformStamped* transform_msg) {
+  tf::transformKindrToMsg(transform, &transform_msg->transform);
 }
 
 void timestampToRos(uint64_t timestamp_ns, ros::Time* time) {

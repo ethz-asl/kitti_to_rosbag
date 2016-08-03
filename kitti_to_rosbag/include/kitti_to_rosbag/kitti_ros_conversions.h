@@ -3,13 +3,14 @@
 
 #include <sensor_msgs/CameraInfo.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/TransformStamped.h>
 #include <tf/transform_datatypes.h>
 
 #include "kitti_to_rosbag/kitti_common.h"
 
 namespace kitti {
 
-void calibrationToRos(const CameraCalibration& cam,
+void calibrationToRos(uint64_t cam_id, const CameraCalibration& cam,
                       sensor_msgs::CameraInfo* cam_msg);
 void stereoCalibrationToRos(const CameraCalibration& left_cam,
                             const CameraCalibration& right_cam,
@@ -18,8 +19,10 @@ void stereoCalibrationToRos(const CameraCalibration& left_cam,
 void imageToRos(const cv::Mat& image, sensor_msgs::Image* image_msg);
 void poseToRos(const Transformation& transform,
                geometry_msgs::PoseStamped* pose_msg);
+void transformToTf(const Transformation& transform,
+                   tf::Transform* tf_transform);
 void transformToRos(const Transformation& transform,
-                    tf::Transform* tf_transform);
+                    geometry_msgs::TransformStamped* transform_msg);
 void timestampToRos(uint64_t timestamp_ns, ros::Time* time);
 
 }  // namespace kitty

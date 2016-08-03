@@ -356,6 +356,15 @@ bool KittiParser::loadTimestampsIntoVector(
   return true;
 }
 
+bool KittiParser::getCameraCalibration(uint64_t cam_id,
+                                       CameraCalibration* cam) const {
+  if (cam_id >= camera_calibrations_.size()) {
+    return false;
+  }
+  *cam = camera_calibrations_[cam_id];
+  return true;
+}
+
 bool KittiParser::getPoseAtEntry(uint64_t entry, uint64_t* timestamp,
                                  Transformation* pose) {
   std::string filename = dataset_path_ + "/" + kPoseFolder + "/" + kDataFolder +
@@ -423,7 +432,7 @@ bool KittiParser::getPointcloudAtEntry(
   return true;
 }
 
-bool KittiParser::getImageAtEntry(uint64_t cam_id, uint64_t entry,
+bool KittiParser::getImageAtEntry(uint64_t entry, uint64_t cam_id,
                                   uint64_t* timestamp, cv::Mat* image) {
   // Get the timestamp for this first.
   if (timestamps_cam_ns_.size() <= cam_id ||

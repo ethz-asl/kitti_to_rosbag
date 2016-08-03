@@ -43,12 +43,10 @@ class KittiParser {
   }
   bool getPointcloudAtEntry(uint64_t entry, uint64_t* timestamp,
                             pcl::PointCloud<pcl::PointXYZI>* ptcloud);
-  bool getImageAtEntry(uint64_t cam_id, uint64_t entry, uint64_t* timestamp,
+  bool getImageAtEntry(uint64_t entry, uint64_t cam_id, uint64_t* timestamp,
                        cv::Mat* image);
 
-  bool getCameraCalibration();
-  bool getCameraIntrinsics();
-  bool getCameraExtrinsics();
+  bool getCameraCalibration(uint64_t cam_id, CameraCalibration* cam) const;
 
   Transformation T_camN_vel(int cam_number) const;
   Transformation T_camN_imu(int cam_number) const;
