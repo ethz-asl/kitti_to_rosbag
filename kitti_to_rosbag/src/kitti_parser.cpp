@@ -74,7 +74,6 @@ bool KittiParser::loadVelToCamCalibration() {
       }
     }
   }
-  std::cout << "T_cam0_vel:\n" << T_cam0_vel_ << std::endl;
   // How do we return false?
   return true;
 }
@@ -117,7 +116,6 @@ bool KittiParser::loadImuToVelCalibration() {
       }
     }
   }
-  std::cout << "T_vel_imu:\n" << T_vel_imu_ << std::endl;
   return true;
 }
 
@@ -370,8 +368,6 @@ bool KittiParser::getPoseAtEntry(uint64_t entry, uint64_t* timestamp,
   std::string filename = dataset_path_ + "/" + kPoseFolder + "/" + kDataFolder +
                          "/" + getFilenameForEntry(entry) + ".txt";
 
-  std::cout << "Filename: " << filename << std::endl;
-
   std::ifstream import_file(filename, std::ios::in);
   if (!import_file) {
     return false;
@@ -384,7 +380,6 @@ bool KittiParser::getPoseAtEntry(uint64_t entry, uint64_t* timestamp,
   std::string line;
   std::vector<double> parsed_doubles;
   while (std::getline(import_file, line)) {
-    std::cout << "Line: " << line << std::endl;
     if (parseVectorOfDoubles(line, &parsed_doubles)) {
       if (convertGpsToPose(parsed_doubles, pose)) {
         return true;
@@ -556,7 +551,7 @@ bool KittiParser::interpolatePoseAtTimestamp(uint64_t timestamp,
         // Then we can't interpolate the pose since we're outside the range.
         return false;
       }
-      left_index = i--;
+      left_index = i - 1;
       break;
     }
   }
@@ -570,15 +565,20 @@ bool KittiParser::interpolatePoseAtTimestamp(uint64_t timestamp,
 
   // Figure out what 't' should be, where t = 0 means 100% left boundary,
   // and t = 1 means 100% right boundary.
-  double t = (timestamps_pose_ns_[left_index + 1] - timestamp) /
+  double t = (timestamp - timestamps_pose_ns_[left_index]) /
              static_cast<double>(timestamps_pose_ns_[left_index + 1] -
                                  timestamps_pose_ns_[left_index]);
+
+  std::cout << "Timestamp: " << timestamp
+            << " timestamp left: " << timestamps_pose_ns_[left_index]
+            << " timestamp right: " << timestamps_pose_ns_[left_index + 1]
+            << " t: " << t << std::endl;
 
   // Load the two transformations.
   uint64_t timestamp_left, timestamp_right;
   Transformation transform_left, transform_right;
   if (!getPoseAtEntry(left_index, &timestamp_left, &transform_left) ||
-      getPoseAtEntry(left_index + 1, &timestamp_right, &transform_right)) {
+      !getPoseAtEntry(left_index + 1, &timestamp_right, &transform_right)) {
     // For some reason couldn't load the poses.
     return false;
   }

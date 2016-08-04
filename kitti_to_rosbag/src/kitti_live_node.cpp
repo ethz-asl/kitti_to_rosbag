@@ -22,8 +22,7 @@ class KittiLiveNode {
 
   bool publishEntry(uint64_t entry);
 
-  void publishTf(uint64_t timestamp_ns,
-                 const Transformation& imu_pose);
+  void publishTf(uint64_t timestamp_ns, const Transformation& imu_pose);
 
   void publishClock(uint64_t timestamp_ns);
 
@@ -96,12 +95,16 @@ KittiLiveNode::KittiLiveNode(const ros::NodeHandle& nh,
 void KittiLiveNode::startPublishing(double rate_hz) {
   double publish_dt_sec = 1.0 / rate_hz;
   uint64_t publish_dt_ns_ = static_cast<uint64_t>(publish_dt_sec * 1e9);
-  publish_timer_ =
-      nh_.createWallTimer(ros::WallDuration(publish_dt_sec),
-                          &KittiLiveNode::timerCallback, this);
+  std::cout << "Publish dt ns: " << publish_dt_ns_ << std::endl;
+  publish_timer_ = nh_.createWallTimer(ros::WallDuration(publish_dt_sec),
+                                       &KittiLiveNode::timerCallback, this);
 }
 
 void KittiLiveNode::timerCallback(const ros::WallTimerEvent& event) {
+  Transformation tf_interpolated;
+
+  std::cout << "Current entry: " << current_entry_ << std::endl;
+
   if (current_entry_ == 0) {
     // This is the first time this is running! Initialize the current timestamp
     // and publish this entry.
@@ -110,15 +113,23 @@ void KittiLiveNode::timerCallback(const ros::WallTimerEvent& event) {
     }
     current_timestamp_ns_ = parser_.getPoseTimestampAtEntry(current_entry_);
     publishClock(current_timestamp_ns_);
+    if (parser_.interpolatePoseAtTimestamp(current_timestamp_ns_,
+                                           &tf_interpolated)) {
+      publishTf(current_timestamp_ns_, tf_interpolated);
+    }
     current_entry_++;
     return;
   }
 
   current_timestamp_ns_ += publish_dt_ns_;
+  std::cout << "Updated timestmap: " << current_timestamp_ns_ << std::endl;
   publishClock(current_timestamp_ns_);
-  Transformation tf_interpolated;
-  if (parser_.interpolatePoseAtTimestamp(current_timestamp_ns_, &tf_interpolated)) {
+  if (parser_.interpolatePoseAtTimestamp(current_timestamp_ns_,
+                                         &tf_interpolated)) {
     publishTf(current_timestamp_ns_, tf_interpolated);
+    // std::cout << "Transform: " << tf_interpolated << std::endl;
+  } else {
+    std::cout << "Failed to interpolate!\n";
   }
 
   if (parser_.getPoseTimestampAtEntry(current_entry_) >=
@@ -162,7 +173,7 @@ bool KittiLiveNode::publishEntry(uint64_t entry) {
     transform_pub_.publish(transform_msg);
 
     // publishClock(timestamp_ns);
-    publishTf(timestamp_ns, pose);
+    // publishTf(timestamp_ns, pose);
   } else {
     return false;
   }
