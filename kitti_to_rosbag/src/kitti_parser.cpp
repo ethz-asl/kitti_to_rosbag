@@ -394,6 +394,13 @@ bool KittiParser::getPoseAtEntry(uint64_t entry, uint64_t* timestamp,
   return false;
 }
 
+uint64_t KittiParser::getPoseTimestampAtEntry(uint64_t entry) {
+  if (timestamps_pose_ns_.size() <= entry) {
+    return 0;
+  }
+  return timestamps_pose_ns_[entry];
+}
+
 bool KittiParser::getPointcloudAtEntry(
     uint64_t entry, uint64_t* timestamp,
     pcl::PointCloud<pcl::PointXYZI>* ptcloud) {

@@ -35,9 +35,9 @@ class KittiParser {
   // Load specific entries (indexed by filename).
   bool getPoseAtEntry(uint64_t entry, uint64_t* timestamp,
                       Transformation* pose);
+  uint64_t getPoseTimestampAtEntry(uint64_t entry);
 
-  bool interpolatePoseAtTimestamp(uint64_t timestamp,
-                                  Transformation* pose);
+  bool interpolatePoseAtTimestamp(uint64_t timestamp, Transformation* pose);
 
   bool getGpsAtEntry() { /* TODO! */
     return false;

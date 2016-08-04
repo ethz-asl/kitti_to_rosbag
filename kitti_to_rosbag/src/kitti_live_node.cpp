@@ -16,12 +16,20 @@ class KittiLiveNode {
                 const std::string& calibration_path,
                 const std::string& dataset_path);
 
+  // Creates a timer to automatically publish entries in 'realtime' versus
+  // the original data,
+  void startPublishing(double rate_hz);
+
   bool publishEntry(uint64_t entry);
 
-  void publishTf(const ros::Time& timestamp_ros,
+  void publishTf(uint64_t timestamp_ns,
                  const Transformation& imu_pose);
 
+  void publishClock(uint64_t timestamp_ns);
+
  private:
+  void timerCallback(const ros::WallTimerEvent& event);
+
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
@@ -35,12 +43,20 @@ class KittiLiveNode {
   image_transport::ImageTransport image_transport_;
   std::vector<image_transport::CameraPublisher> image_pubs_;
 
+  // Decides the rate of publishing (TF is published at this rate).
+  // Call startPublishing() to turn this on.
+  ros::WallTimer publish_timer_;
+
   kitti::KittiParser parser_;
 
   std::string world_frame_id_;
   std::string imu_frame_id_;
   std::string cam_frame_id_prefix_;
   std::string velodyne_frame_id_;
+
+  uint64_t current_entry_;
+  uint64_t publish_dt_ns_;
+  uint64_t current_timestamp_ns_;
 };
 
 KittiLiveNode::KittiLiveNode(const ros::NodeHandle& nh,
@@ -54,7 +70,10 @@ KittiLiveNode::KittiLiveNode(const ros::NodeHandle& nh,
       world_frame_id_("world"),
       imu_frame_id_("imu"),
       cam_frame_id_prefix_("cam"),
-      velodyne_frame_id_("velodyne") {
+      velodyne_frame_id_("velodyne"),
+      current_entry_(0),
+      publish_dt_ns_(0),
+      current_timestamp_ns_(0) {
   // Load all the timestamp maps and calibration parameters.
   parser_.loadCalibration();
   parser_.loadTimestampMaps();
@@ -72,6 +91,51 @@ KittiLiveNode::KittiLiveNode(const ros::NodeHandle& nh,
     image_pubs_.push_back(
         image_transport_.advertiseCamera(getCameraFrameId(cam_id), 1));
   }
+}
+
+void KittiLiveNode::startPublishing(double rate_hz) {
+  double publish_dt_sec = 1.0 / rate_hz;
+  uint64_t publish_dt_ns_ = static_cast<uint64_t>(publish_dt_sec * 1e9);
+  publish_timer_ =
+      nh_.createWallTimer(ros::WallDuration(publish_dt_sec),
+                          &KittiLiveNode::timerCallback, this);
+}
+
+void KittiLiveNode::timerCallback(const ros::WallTimerEvent& event) {
+  if (current_entry_ == 0) {
+    // This is the first time this is running! Initialize the current timestamp
+    // and publish this entry.
+    if (!publishEntry(current_entry_)) {
+      publish_timer_.stop();
+    }
+    current_timestamp_ns_ = parser_.getPoseTimestampAtEntry(current_entry_);
+    publishClock(current_timestamp_ns_);
+    current_entry_++;
+    return;
+  }
+
+  current_timestamp_ns_ += publish_dt_ns_;
+  publishClock(current_timestamp_ns_);
+  Transformation tf_interpolated;
+  if (parser_.interpolatePoseAtTimestamp(current_timestamp_ns_, &tf_interpolated)) {
+    publishTf(current_timestamp_ns_, tf_interpolated);
+  }
+
+  if (parser_.getPoseTimestampAtEntry(current_entry_) >=
+      current_timestamp_ns_) {
+    if (!publishEntry(current_entry_)) {
+      publish_timer_.stop();
+    }
+    current_entry_++;
+  }
+}
+
+void KittiLiveNode::publishClock(uint64_t timestamp_ns) {
+  ros::Time timestamp_ros;
+  timestampToRos(timestamp_ns, &timestamp_ros);
+  rosgraph_msgs::Clock clock_time;
+  clock_time.clock = timestamp_ros;
+  clock_pub_.publish(clock_time);
 }
 
 bool KittiLiveNode::publishEntry(uint64_t entry) {
@@ -97,10 +161,8 @@ bool KittiLiveNode::publishEntry(uint64_t entry) {
     pose_pub_.publish(pose_msg);
     transform_pub_.publish(transform_msg);
 
-    clock_time.clock = timestamp_ros;
-    clock_pub_.publish(clock_time);
-
-    publishTf(timestamp_ros, pose);
+    // publishClock(timestamp_ns);
+    publishTf(timestamp_ns, pose);
   } else {
     return false;
   }
@@ -139,8 +201,10 @@ bool KittiLiveNode::publishEntry(uint64_t entry) {
   return true;
 }
 
-void KittiLiveNode::publishTf(const ros::Time& timestamp_ros,
+void KittiLiveNode::publishTf(uint64_t timestamp_ns,
                               const Transformation& imu_pose) {
+  ros::Time timestamp_ros;
+  timestampToRos(timestamp_ns, &timestamp_ros);
   Transformation T_imu_world = imu_pose;
   Transformation T_vel_imu = parser_.T_vel_imu();
   Transformation T_cam_imu;
@@ -202,9 +266,11 @@ int main(int argc, char** argv) {
 
   kitti::KittiLiveNode node(nh, nh_private, calibration_path, dataset_path);
 
-  uint64_t entry = 0;
+  node.startPublishing(100.0);
 
-  while (ros::ok()) {
+  // uint64_t entry = 0;
+
+  /* while (ros::ok()) {
     if (!node.publishEntry(++entry)) {
       break;
     }
@@ -216,10 +282,11 @@ int main(int argc, char** argv) {
     ros::spinOnce();
 
     // ros::Duration(0.1).sleep();
-  }
+  } */
 
-  ROS_INFO("Finished publishing %llu entries.", entry);
+  // ROS_INFO("Finished publishing %llu entries.", entry);
 
   ros::spin();
+
   return 0;
 }
