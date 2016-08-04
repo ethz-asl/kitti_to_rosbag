@@ -145,8 +145,8 @@ void KittiLiveNode::publishTf(const ros::Time& timestamp_ros,
   tf::Transform tf_imu_world, tf_cam_imu, tf_vel_imu;
 
   transformToTf(T_imu_world, &tf_imu_world);
-  transformToTf(T_vel_imu, &tf_vel_imu);
-  transformToTf(T_cam_imu, &tf_cam_imu);
+  transformToTf(T_vel_imu.inverse(), &tf_vel_imu);
+  transformToTf(T_cam_imu.inverse(), &tf_cam_imu);
 
   tf_broadcaster_.sendTransform(tf::StampedTransform(
       tf_imu_world, timestamp_ros, world_frame_id_, imu_frame_id_));
