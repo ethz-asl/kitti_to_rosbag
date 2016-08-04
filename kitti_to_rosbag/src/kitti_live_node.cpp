@@ -281,25 +281,7 @@ int main(int argc, char** argv) {
 
   kitti::KittiLiveNode node(nh, nh_private, calibration_path, dataset_path);
 
-  node.startPublishing(200.0);
-
-  // uint64_t entry = 0;
-
-  /* while (ros::ok()) {
-    if (!node.publishEntry(++entry)) {
-      break;
-    }
-
-    ros::spinOnce();
-    ros::spinOnce();
-    ros::spinOnce();
-    usleep(100000);
-    ros::spinOnce();
-
-    // ros::Duration(0.1).sleep();
-  } */
-
-  // ROS_INFO("Finished publishing %llu entries.", entry);
+  node.startPublishing(50.0);
 
   ros::spin();
 

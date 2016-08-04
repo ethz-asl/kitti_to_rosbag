@@ -24,6 +24,10 @@ cs_add_executable(kitti_live_node
 )
 target_link_libraries(kitti_live_node ${PROJECT_NAME})
 
+cs_add_executable(kitti_rosbag_converter
+  src/kitti_rosbag_converter.cpp
+)
+target_link_libraries(kitti_rosbag_converter ${PROJECT_NAME})
 
 ##########
 # EXPORT #
