@@ -35,6 +35,10 @@ class KittiParser {
   // Load specific entries (indexed by filename).
   bool getPoseAtEntry(uint64_t entry, uint64_t* timestamp,
                       Transformation* pose);
+
+  bool interpolatePoseAtTimestamp(uint64_t timestamp,
+                                  Transformation* pose);
+
   bool getGpsAtEntry() { /* TODO! */
     return false;
   }
@@ -58,6 +62,8 @@ class KittiParser {
   // Basic accessors.
   Transformation T_cam0_vel() const;
   Transformation T_vel_imu() const;
+
+  size_t getNumCameras() const;
 
  private:
   bool loadCamToCamCalibration();

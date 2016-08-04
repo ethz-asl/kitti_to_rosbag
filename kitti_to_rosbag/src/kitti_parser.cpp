@@ -539,4 +539,50 @@ Transformation KittiParser::T_cam0_vel() const { return T_cam0_vel_; }
 
 Transformation KittiParser::T_vel_imu() const { return T_vel_imu_; }
 
+bool KittiParser::interpolatePoseAtTimestamp(uint64_t timestamp,
+                                             Transformation* pose) {
+  // Look up the closest 2 timestamps to this.
+  size_t left_index = timestamps_pose_ns_.size();
+  for (size_t i = 0; i < timestamps_pose_ns_.size(); ++i) {
+    if (timestamps_pose_ns_[i] > timestamp) {
+      if (i == 0) {
+        // Then we can't interpolate the pose since we're outside the range.
+        return false;
+      }
+      left_index = i--;
+      break;
+    }
+  }
+  if (left_index >= timestamps_pose_ns_.size()) {
+    return false;
+  }
+  // Make sure we don't go over the size
+  // if (left_index == timestamps_pose_ns_.size() - 1) {
+  //  left_index--;
+  //}
+
+  // Figure out what 't' should be, where t = 0 means 100% left boundary,
+  // and t = 1 means 100% right boundary.
+  double t = (timestamps_pose_ns_[left_index + 1] - timestamp) /
+             static_cast<double>(timestamps_pose_ns_[left_index + 1] -
+                                 timestamps_pose_ns_[left_index]);
+
+  // Load the two transformations.
+  uint64_t timestamp_left, timestamp_right;
+  Transformation transform_left, transform_right;
+  if (!getPoseAtEntry(left_index, &timestamp_left, &transform_left) ||
+      getPoseAtEntry(left_index + 1, &timestamp_right, &transform_right)) {
+    // For some reason couldn't load the poses.
+    return false;
+  }
+
+  // Interpolate between them.
+  *pose = interpolateTransformations(transform_left, transform_right, t);
+  return true;
+}
+
+size_t KittiParser::getNumCameras() const {
+  return camera_calibrations_.size();
+}
+
 }  // namespace kitti

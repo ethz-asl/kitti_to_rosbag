@@ -33,7 +33,7 @@ class KittiLiveNode {
   tf::TransformBroadcaster tf_broadcaster_;
 
   image_transport::ImageTransport image_transport_;
-  image_transport::CameraPublisher image_pub_;
+  std::vector<image_transport::CameraPublisher> image_pubs_;
 
   kitti::KittiParser parser_;
 
@@ -55,6 +55,10 @@ KittiLiveNode::KittiLiveNode(const ros::NodeHandle& nh,
       imu_frame_id_("imu"),
       cam_frame_id_prefix_("cam"),
       velodyne_frame_id_("velodyne") {
+  // Load all the timestamp maps and calibration parameters.
+  parser_.loadCalibration();
+  parser_.loadTimestampMaps();
+
   // Advertise all the publishing topics for ROS live streaming.
   clock_pub_ = nh_.advertise<rosgraph_msgs::Clock>("/clock", 1, false);
   pointcloud_pub_ = nh_private_.advertise<pcl::PointCloud<pcl::PointXYZI> >(
@@ -64,12 +68,10 @@ KittiLiveNode::KittiLiveNode(const ros::NodeHandle& nh,
   transform_pub_ = nh_private_.advertise<geometry_msgs::TransformStamped>(
       "transform_imu", 10, false);
 
-  // TODO(helenol): make a vector of these for all cameras.
-  image_pub_ = image_transport_.advertiseCamera("cam0", 1);
-
-  // Load all the timestamp maps and calibration parameters.
-  parser_.loadCalibration();
-  parser_.loadTimestampMaps();
+  for (size_t cam_id = 0; cam_id < parser_.getNumCameras(); ++cam_id) {
+    image_pubs_.push_back(
+        image_transport_.advertiseCamera(getCameraFrameId(cam_id), 1));
+  }
 }
 
 bool KittiLiveNode::publishEntry(uint64_t entry) {
@@ -104,22 +106,23 @@ bool KittiLiveNode::publishEntry(uint64_t entry) {
   }
 
   // Publish images.
-  // TODO(helenol): all cams!
   cv::Mat image;
-  if (parser_.getImageAtEntry(entry, 0, &timestamp_ns, &image)) {
-    sensor_msgs::Image image_msg;
-    imageToRos(image, &image_msg);
+  for (size_t cam_id = 0; cam_id < parser_.getNumCameras(); ++cam_id) {
+    if (parser_.getImageAtEntry(entry, cam_id, &timestamp_ns, &image)) {
+      sensor_msgs::Image image_msg;
+      imageToRos(image, &image_msg);
 
-    // TODO(helenol): cache this.
-    // Get the calibration info for this camera.
-    CameraCalibration cam_calib;
-    parser_.getCameraCalibration(0, &cam_calib);
-    sensor_msgs::CameraInfo cam_info;
-    calibrationToRos(0, cam_calib, &cam_info);
+      // TODO(helenol): cache this.
+      // Get the calibration info for this camera.
+      CameraCalibration cam_calib;
+      parser_.getCameraCalibration(cam_id, &cam_calib);
+      sensor_msgs::CameraInfo cam_info;
+      calibrationToRos(cam_id, cam_calib, &cam_info);
 
-    timestampToRos(timestamp_ns, &timestamp_ros);
+      timestampToRos(timestamp_ns, &timestamp_ros);
 
-    image_pub_.publish(image_msg, cam_info, timestamp_ros);
+      image_pubs_[cam_id].publish(image_msg, cam_info, timestamp_ros);
+    }
   }
 
   // Publish pointclouds.
@@ -140,20 +143,24 @@ void KittiLiveNode::publishTf(const ros::Time& timestamp_ros,
                               const Transformation& imu_pose) {
   Transformation T_imu_world = imu_pose;
   Transformation T_vel_imu = parser_.T_vel_imu();
-  Transformation T_cam_imu = parser_.T_camN_imu(0);
+  Transformation T_cam_imu;
 
   tf::Transform tf_imu_world, tf_cam_imu, tf_vel_imu;
 
   transformToTf(T_imu_world, &tf_imu_world);
   transformToTf(T_vel_imu.inverse(), &tf_vel_imu);
-  transformToTf(T_cam_imu.inverse(), &tf_cam_imu);
 
   tf_broadcaster_.sendTransform(tf::StampedTransform(
       tf_imu_world, timestamp_ros, world_frame_id_, imu_frame_id_));
   tf_broadcaster_.sendTransform(tf::StampedTransform(
       tf_vel_imu, timestamp_ros, imu_frame_id_, velodyne_frame_id_));
-  tf_broadcaster_.sendTransform(
-      tf::StampedTransform(tf_cam_imu, timestamp_ros, imu_frame_id_, "cam0"));
+
+  for (size_t cam_id = 0; cam_id < parser_.getNumCameras(); ++cam_id) {
+    T_cam_imu = parser_.T_camN_imu(cam_id);
+    transformToTf(T_cam_imu.inverse(), &tf_cam_imu);
+    tf_broadcaster_.sendTransform(tf::StampedTransform(
+        tf_cam_imu, timestamp_ros, imu_frame_id_, getCameraFrameId(cam_id)));
+  }
 }
 
 }  // namespace kitti
@@ -202,6 +209,8 @@ int main(int argc, char** argv) {
       break;
     }
 
+    ros::spinOnce();
+    ros::spinOnce();
     ros::spinOnce();
     usleep(100000);
     ros::spinOnce();

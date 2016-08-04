@@ -13,6 +13,7 @@ add_definitions(-std=c++11)
 cs_add_library(${PROJECT_NAME}
   src/kitti_parser.cpp
   src/kitti_ros_conversions.cpp
+  src/kitti_common.cpp
 )
 
 ############

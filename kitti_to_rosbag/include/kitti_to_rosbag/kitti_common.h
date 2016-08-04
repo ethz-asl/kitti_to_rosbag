@@ -39,6 +39,12 @@ typedef std::vector<CameraCalibration,
                     Eigen::aligned_allocator<CameraCalibration> >
     CameraCalibrationVector;
 
+// Where t = 0 means 100% left transformation,
+// and t = 1 means 100% right transformation.
+Transformation interpolateTransformations(const Transformation& left,
+                                          const Transformation& right,
+                                          double t);
+
 }  // namespace kitti
 
 #endif  // KITTI_TO_ROSBAG_KITTI_COMMON_H_

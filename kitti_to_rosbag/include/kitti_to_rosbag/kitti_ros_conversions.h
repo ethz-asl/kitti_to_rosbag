@@ -25,6 +25,8 @@ void transformToRos(const Transformation& transform,
                     geometry_msgs::TransformStamped* transform_msg);
 void timestampToRos(uint64_t timestamp_ns, ros::Time* time);
 
+std::string getCameraFrameId(int cam_id);
+
 }  // namespace kitty
 
 #endif  // KITTI_TO_ROSBAG_KITTI_ROS_CONVERSIONS_H_
