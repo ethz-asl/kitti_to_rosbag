@@ -310,6 +310,11 @@ void KittiParser::loadTimestampMaps() {
       dataset_path_ + "/" + kPoseFolder + "/" + kTimestampFilename;
   loadTimestampsIntoVector(filename, &timestamps_pose_ns_);
 
+  std::cout << "Timestmap map for pose:\n";
+  for (size_t i = 0; i < timestamps_pose_ns_.size(); ++i) {
+    std::cout << i << " " << timestamps_pose_ns_[i] << std::endl;
+  }
+
   // Velodyne.
   filename = dataset_path_ + "/" + kVelodyneFolder + "/" + kTimestampFilename;
   loadTimestampsIntoVector(filename, &timestamps_vel_ns_);
@@ -343,7 +348,7 @@ bool KittiParser::loadTimestampsIntoVector(
     time_t time_since_epoch = mktime(&t);
 
     uint64_t timestamp = time_since_epoch * kSecondsToNanoSeconds +
-                         std::stoi(timestamp_string.substr(20, 8));
+                         std::stoi(timestamp_string.substr(20, 9));
     timestamp_vec->push_back(timestamp);
   }
 

@@ -94,7 +94,7 @@ KittiLiveNode::KittiLiveNode(const ros::NodeHandle& nh,
 
 void KittiLiveNode::startPublishing(double rate_hz) {
   double publish_dt_sec = 1.0 / rate_hz;
-  uint64_t publish_dt_ns_ = static_cast<uint64_t>(publish_dt_sec * 1e9);
+  publish_dt_ns_ = static_cast<uint64_t>(publish_dt_sec * 1e9);
   std::cout << "Publish dt ns: " << publish_dt_ns_ << std::endl;
   publish_timer_ = nh_.createWallTimer(ros::WallDuration(publish_dt_sec),
                                        &KittiLiveNode::timerCallback, this);
@@ -121,6 +121,7 @@ void KittiLiveNode::timerCallback(const ros::WallTimerEvent& event) {
     return;
   }
 
+  std::cout << "Publish dt ns: " << publish_dt_ns_ << std::endl;
   current_timestamp_ns_ += publish_dt_ns_;
   std::cout << "Updated timestmap: " << current_timestamp_ns_ << std::endl;
   publishClock(current_timestamp_ns_);
@@ -132,10 +133,13 @@ void KittiLiveNode::timerCallback(const ros::WallTimerEvent& event) {
     std::cout << "Failed to interpolate!\n";
   }
 
-  if (parser_.getPoseTimestampAtEntry(current_entry_) >=
+  std::cout << "Current entry's timestamp: "
+            << parser_.getPoseTimestampAtEntry(current_entry_) << std::endl;
+  if (parser_.getPoseTimestampAtEntry(current_entry_) <=
       current_timestamp_ns_) {
     if (!publishEntry(current_entry_)) {
       publish_timer_.stop();
+      return;
     }
     current_entry_++;
   }
@@ -172,8 +176,8 @@ bool KittiLiveNode::publishEntry(uint64_t entry) {
     pose_pub_.publish(pose_msg);
     transform_pub_.publish(transform_msg);
 
-    // publishClock(timestamp_ns);
-    // publishTf(timestamp_ns, pose);
+    //publishClock(timestamp_ns);
+    //publishTf(timestamp_ns, pose);
   } else {
     return false;
   }
@@ -277,7 +281,7 @@ int main(int argc, char** argv) {
 
   kitti::KittiLiveNode node(nh, nh_private, calibration_path, dataset_path);
 
-  node.startPublishing(100.0);
+  node.startPublishing(200.0);
 
   // uint64_t entry = 0;
 
