@@ -1,6 +1,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <pcl_ros/point_cloud.h>
 #include <rosbag/bag.h>
+#include <tf/tfMessage.h>
 
 #include "kitti_to_rosbag/kitti_parser.h"
 #include "kitti_to_rosbag/kitti_ros_conversions.h"
@@ -141,6 +142,39 @@ bool KittiBagConverter::convertEntry(uint64_t entry) {
 
 void KittiBagConverter::convertTf(uint64_t timestamp_ns,
                                   const Transformation& imu_pose) {
+  tf::tfMessage tf_msg;
+  ros::Time timestamp_ros;
+  timestampToRos(timestamp_ns, &timestamp_ros);
+
+  // Create the full transform chain.
+  Transformation T_imu_world = imu_pose;
+  Transformation T_vel_imu = parser_.T_vel_imu();
+  Transformation T_cam_imu;
+
+  geometry_msgs::TransformStamped tf_imu_world, tf_vel_imu, tf_cam_imu;
+  transformToRos(T_imu_world, &tf_imu_world);
+  tf_imu_world.header.frame_id = world_frame_id_;
+  tf_imu_world.child_frame_id = imu_frame_id_;
+  transformToRos(T_vel_imu.inverse(), &tf_vel_imu);
+  tf_imu_world.header.frame_id = imu_frame_id_;
+  tf_imu_world.child_frame_id = velodyne_frame_id_;
+
+  // Put them into one tf_msg.
+  tf_msg.transforms.push_back(tf_imu_world);
+  tf_msg.transforms.push_back(tf_vel_imu);
+
+  // Get all of the camera transformations as well.
+  for (size_t cam_id = 0; cam_id < parser_.getNumCameras(); ++cam_id) {
+    T_cam_imu = parser_.T_camN_imu(cam_id);
+    transformToRos(T_cam_imu.inverse(), &tf_cam_imu);
+    tf_cam_imu.header.frame_id = imu_frame_id_;
+    tf_cam_imu.child_frame_id = getCameraFrameId(cam_id);
+    tf_msg.transforms.push_back(tf_cam_imu);
+  }
+
+
+  bag_.write("/tf", timestamp_ros, tf_msg);
+
   /* ros::Time timestamp_ros;
   timestampToRos(timestamp_ns, &timestamp_ros);
   Transformation T_imu_world = imu_pose;
