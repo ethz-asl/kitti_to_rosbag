@@ -155,9 +155,11 @@ void KittiBagConverter::convertTf(uint64_t timestamp_ns,
   transformToRos(T_imu_world, &tf_imu_world);
   tf_imu_world.header.frame_id = world_frame_id_;
   tf_imu_world.child_frame_id = imu_frame_id_;
+  tf_imu_world.header.stamp = timestamp_ros;
   transformToRos(T_vel_imu.inverse(), &tf_vel_imu);
-  tf_imu_world.header.frame_id = imu_frame_id_;
-  tf_imu_world.child_frame_id = velodyne_frame_id_;
+  tf_vel_imu.header.frame_id = imu_frame_id_;
+  tf_vel_imu.child_frame_id = velodyne_frame_id_;
+  tf_vel_imu.header.stamp = timestamp_ros;
 
   // Put them into one tf_msg.
   tf_msg.transforms.push_back(tf_imu_world);
@@ -169,6 +171,7 @@ void KittiBagConverter::convertTf(uint64_t timestamp_ns,
     transformToRos(T_cam_imu.inverse(), &tf_cam_imu);
     tf_cam_imu.header.frame_id = imu_frame_id_;
     tf_cam_imu.child_frame_id = getCameraFrameId(cam_id);
+    tf_cam_imu.header.stamp = timestamp_ros;
     tf_msg.transforms.push_back(tf_cam_imu);
   }
 
