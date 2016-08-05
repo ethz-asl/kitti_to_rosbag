@@ -33,7 +33,6 @@ class KittiBagConverter {
   std::string pointcloud_topic_;
 };
 
-
 KittiBagConverter::KittiBagConverter(const std::string& calibration_path,
                                      const std::string& dataset_path,
                                      const std::string& output_filename)
@@ -50,21 +49,6 @@ KittiBagConverter::KittiBagConverter(const std::string& calibration_path,
   parser_.loadTimestampMaps();
 
   bag_.open(output_filename, rosbag::bagmode::Write);
-
-  /*
-  // Advertise all the publishing topics for ROS live streaming.
-  clock_pub_ = nh_.advertise<rosgraph_msgs::Clock>("/clock", 1, false);
-  pointcloud_pub_ = nh_private_.advertise<pcl::PointCloud<pcl::PointXYZI> >(
-      "velodyne_points", 10, false);
-  pose_pub_ =
-      nh_private_.advertise<geometry_msgs::PoseStamped>("pose_imu", 10, false);
-  transform_pub_ = nh_private_.advertise<geometry_msgs::TransformStamped>(
-      "transform_imu", 10, false);
-
-  for (size_t cam_id = 0; cam_id < parser_.getNumCameras(); ++cam_id) {
-    image_pubs_.push_back(
-        image_transport_.advertiseCamera(getCameraFrameId(cam_id), 1));
-  } */
 }
 
 void KittiBagConverter::convertAll() {
@@ -175,31 +159,7 @@ void KittiBagConverter::convertTf(uint64_t timestamp_ns,
     tf_msg.transforms.push_back(tf_cam_imu);
   }
 
-
   bag_.write("/tf", timestamp_ros, tf_msg);
-
-  /* ros::Time timestamp_ros;
-  timestampToRos(timestamp_ns, &timestamp_ros);
-  Transformation T_imu_world = imu_pose;
-  Transformation T_vel_imu = parser_.T_vel_imu();
-  Transformation T_cam_imu;
-
-  tf::Transform tf_imu_world, tf_cam_imu, tf_vel_imu;
-
-  transformToTf(T_imu_world, &tf_imu_world);
-  transformToTf(T_vel_imu.inverse(), &tf_vel_imu);
-
-  tf_broadcaster_.sendTransform(tf::StampedTransform(
-      tf_imu_world, timestamp_ros, world_frame_id_, imu_frame_id_));
-  tf_broadcaster_.sendTransform(tf::StampedTransform(
-      tf_vel_imu, timestamp_ros, imu_frame_id_, velodyne_frame_id_));
-
-  for (size_t cam_id = 0; cam_id < parser_.getNumCameras(); ++cam_id) {
-    T_cam_imu = parser_.T_camN_imu(cam_id);
-    transformToTf(T_cam_imu.inverse(), &tf_cam_imu);
-    tf_broadcaster_.sendTransform(tf::StampedTransform(
-        tf_cam_imu, timestamp_ros, imu_frame_id_, getCameraFrameId(cam_id)));
-  } */
 }
 
 }  // namespace kitti
@@ -209,16 +169,19 @@ int main(int argc, char** argv) {
   google::ParseCommandLineFlags(&argc, &argv, false);
   google::InstallFailureSignalHandler();
 
-  const std::string calibration_path = "/Users/helen/data/kitti/2011_09_26";
-  const std::string dataset_path =
-      "/Users/helen/data/kitti/2011_09_26/2011_09_26_drive_0035_sync";
-  const std::string output_path =
-      "/Users/helen/data/kitti/2011_09_26/2011_09_26_drive_0035_sync/"
-      "testbag.bag";
+  if (argc < 4) {
+    std::cout << "Usage: rosrun kitti_to_rosbag kitti_rosbag_converter "
+                 "calibration_path dataset_path output_path\n";
+    std::cout << "Note: no trailing slashes.\n";
+    return 0;
+  }
+
+  const std::string calibration_path = argv[1];
+  const std::string dataset_path = argv[2];
+  const std::string output_path = argv[3];
 
   kitti::KittiBagConverter converter(calibration_path, dataset_path,
                                      output_path);
-
   converter.convertAll();
 
   return 0;
