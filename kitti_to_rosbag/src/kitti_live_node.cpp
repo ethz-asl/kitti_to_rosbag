@@ -256,29 +256,6 @@ int main(int argc, char** argv) {
   const std::string dataset_path =
       "/Users/helen/data/kitti/2011_09_26/2011_09_26_drive_0035_sync";
 
-  kitti::KittiParser parser(calibration_path, dataset_path, true);
-
-  parser.loadCalibration();
-  parser.loadTimestampMaps();
-
-  uint64_t timestamp;
-  kitti::Transformation pose;
-  parser.getPoseAtEntry(0, &timestamp, &pose);
-
-  std::cout << "Timestamp: " << timestamp << " Pose: " << pose << std::endl;
-
-  pcl::PointCloud<pcl::PointXYZI> ptcloud;
-  parser.getPointcloudAtEntry(0, &timestamp, &ptcloud);
-
-  std::cout << "Timestamp: " << timestamp << " Num points: " << ptcloud.size()
-            << std::endl;
-
-  cv::Mat image;
-  parser.getImageAtEntry(0, 3, &timestamp, &image);
-
-  // cv::imshow("Display window", image);
-  // cv::waitKey(0);
-
   kitti::KittiLiveNode node(nh, nh_private, calibration_path, dataset_path);
 
   node.startPublishing(50.0);
