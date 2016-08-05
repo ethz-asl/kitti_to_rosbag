@@ -29,6 +29,11 @@ cs_add_executable(kitti_rosbag_converter
 )
 target_link_libraries(kitti_rosbag_converter ${PROJECT_NAME})
 
+cs_add_executable(tiny_disp_view
+  src/tiny_disp_view.cpp
+)
+target_link_libraries(tiny_disp_view ${PROJECT_NAME})
+
 ##########
 # EXPORT #
 ##########

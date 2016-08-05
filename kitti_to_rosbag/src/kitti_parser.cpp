@@ -202,6 +202,9 @@ bool KittiParser::loadCamToCamCalibration() {
         if (parseVectorOfDoubles(data, &parsed_doubles)) {
           camera_calibrations_[index].projection_mat =
               Eigen::Matrix<double, 4, 3>(parsed_doubles.data()).transpose();
+
+          std::cout << "Projection mat:\n"
+                    << camera_calibrations_[index].projection_mat << std::endl;
         }
       }
       continue;
@@ -217,23 +220,24 @@ bool KittiParser::loadCamToCamCalibration() {
       continue;
     }
 
-    // If not rectified, try to load K and D.
+    // Try to load unrectified K, and if using raw images, also load D.
+    if (header.compare(0, 1, "K") == 0) {
+      int index = std::stoi(header.substr(2));
+      if (camera_calibrations_.size() <= index) {
+        camera_calibrations_.resize(index + 1);
+      }
+      // Parse the rotation matrix.
+      if (parseVectorOfDoubles(data, &parsed_doubles)) {
+        Eigen::Matrix3d K(parsed_doubles.data());
+        // All matrices are written row-major but Eigen is column-major
+        // (can swap this, but I guess it's anyway easier to just transpose
+        // for these small matrices).
+        camera_calibrations_[index].K = K.transpose();
+      }
+      continue;
+    }
     if (!rectified_) {
-      if (header.compare(0, 1, "K") == 0) {
-        int index = std::stoi(header.substr(2));
-        if (camera_calibrations_.size() <= index) {
-          camera_calibrations_.resize(index + 1);
-        }
-        // Parse the rotation matrix.
-        if (parseVectorOfDoubles(data, &parsed_doubles)) {
-          Eigen::Matrix3d K(parsed_doubles.data());
-          // All matrices are written row-major but Eigen is column-major
-          // (can swap this, but I guess it's anyway easier to just transpose
-          // for these small matrices).
-          camera_calibrations_[index].K = K.transpose();
-        }
-        continue;
-      } else if (header.compare(0, 1, "D") == 0) {
+      if (header.compare(0, 1, "D") == 0) {
         int index = std::stoi(header.substr(2));
         if (camera_calibrations_.size() <= index) {
           camera_calibrations_.resize(index + 1);
