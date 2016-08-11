@@ -79,11 +79,11 @@ KittiLiveNode::KittiLiveNode(const ros::NodeHandle& nh,
 
   // Advertise all the publishing topics for ROS live streaming.
   clock_pub_ = nh_.advertise<rosgraph_msgs::Clock>("/clock", 1, false);
-  pointcloud_pub_ = nh_private_.advertise<pcl::PointCloud<pcl::PointXYZI> >(
+  pointcloud_pub_ = nh_.advertise<pcl::PointCloud<pcl::PointXYZI> >(
       "velodyne_points", 10, false);
   pose_pub_ =
-      nh_private_.advertise<geometry_msgs::PoseStamped>("pose_imu", 10, false);
-  transform_pub_ = nh_private_.advertise<geometry_msgs::TransformStamped>(
+      nh_.advertise<geometry_msgs::PoseStamped>("pose_imu", 10, false);
+  transform_pub_ = nh_.advertise<geometry_msgs::TransformStamped>(
       "transform_imu", 10, false);
 
   for (size_t cam_id = 0; cam_id < parser_.getNumCameras(); ++cam_id) {
@@ -176,8 +176,8 @@ bool KittiLiveNode::publishEntry(uint64_t entry) {
     pose_pub_.publish(pose_msg);
     transform_pub_.publish(transform_msg);
 
-    //publishClock(timestamp_ns);
-    //publishTf(timestamp_ns, pose);
+    // publishClock(timestamp_ns);
+    // publishTf(timestamp_ns, pose);
   } else {
     return false;
   }
@@ -197,6 +197,10 @@ bool KittiLiveNode::publishEntry(uint64_t entry) {
       calibrationToRos(cam_id, cam_calib, &cam_info);
 
       timestampToRos(timestamp_ns, &timestamp_ros);
+
+      image_msg.header.stamp = timestamp_ros;
+      image_msg.header.frame_id = getCameraFrameId(cam_id);
+      cam_info.header = image_msg.header;
 
       image_pubs_[cam_id].publish(image_msg, cam_info, timestamp_ros);
     }

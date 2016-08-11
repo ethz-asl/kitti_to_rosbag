@@ -44,11 +44,15 @@ void calibrationToRos(uint64_t cam_id, const CameraCalibration& cam,
     }
   }
 
-  for (size_t i = 0; i < 4; ++i) {
-    for (size_t j = 0; j < 3; ++j) {
+  for (size_t i = 0; i < 3; ++i) {
+    for (size_t j = 0; j < 4; ++j) {
       cam_msg->P[4 * i + j] = cam.projection_mat(i, j);
     }
   }
+
+  // Set the translation of the projection matrix.
+  //cam_msg->P[3] = cam.T_cam0_cam.getPosition().x();
+  //cam_msg->P[7] = cam.T_cam0_cam.getPosition().y();
 }
 
 void stereoCalibrationToRos(uint64_t left_cam_id, uint64_t right_cam_id,
@@ -71,8 +75,12 @@ void stereoCalibrationToRos(uint64_t left_cam_id, uint64_t right_cam_id,
 void imageToRos(const cv::Mat& image, sensor_msgs::Image* image_msg) {
   cv_bridge::CvImage image_cv_bridge;
   image_cv_bridge.image = image;
-  // TODO!!!
-  image_cv_bridge.encoding = "mono8";
+
+  if (image.type() == CV_8U) {
+    image_cv_bridge.encoding = "mono8";
+  } else if (image.type() == CV_8UC3) {
+    image_cv_bridge.encoding = "bgr8";
+  }
   image_cv_bridge.toImageMsg(*image_msg);
 }
 
