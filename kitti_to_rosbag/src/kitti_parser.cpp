@@ -346,7 +346,13 @@ bool KittiParser::loadTimestampsIntoVector(
 
     std::string timestamp_string = line_stream.str();
     std::tm t = {};
-    line_stream >> std::get_time(&t, "%Y-%m-%d %H:%M:%S");
+    t.tm_year = std::stoi(timestamp_string.substr(0, 4)) - 1900;
+    t.tm_mon  = std::stoi(timestamp_string.substr(5, 2)) - 1;
+    t.tm_mday = std::stoi(timestamp_string.substr(8, 2));
+    t.tm_hour = std::stoi(timestamp_string.substr(11, 2));
+    t.tm_min  = std::stoi(timestamp_string.substr(14, 2));
+    t.tm_sec  = std::stoi(timestamp_string.substr(17, 2));
+    t.tm_isdst = -1;
 
     static const uint64_t kSecondsToNanoSeconds = 1e9;
     time_t time_since_epoch = mktime(&t);
