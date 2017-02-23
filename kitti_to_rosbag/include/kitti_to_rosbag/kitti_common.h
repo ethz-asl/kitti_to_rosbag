@@ -31,7 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define KITTI_TO_ROSBAG_KITTI_COMMON_H_
 
 #include <Eigen/Core>
-#include <Eigen/StdVector>
 #include <kindr/minimal/quat-transformation.h>
 
 namespace kitti {
