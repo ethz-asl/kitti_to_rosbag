@@ -145,6 +145,8 @@ bool KittiParser::loadImuToVelCalibration() {
       }
     }
   }
+  std::cout << "Transform T_vel_imu: " << T_vel_imu_.getTransformationMatrix()
+            << std::endl;
   return true;
 }
 
@@ -376,11 +378,11 @@ bool KittiParser::loadTimestampsIntoVector(
     std::string timestamp_string = line_stream.str();
     std::tm t = {};
     t.tm_year = std::stoi(timestamp_string.substr(0, 4)) - 1900;
-    t.tm_mon  = std::stoi(timestamp_string.substr(5, 2)) - 1;
+    t.tm_mon = std::stoi(timestamp_string.substr(5, 2)) - 1;
     t.tm_mday = std::stoi(timestamp_string.substr(8, 2));
     t.tm_hour = std::stoi(timestamp_string.substr(11, 2));
-    t.tm_min  = std::stoi(timestamp_string.substr(14, 2));
-    t.tm_sec  = std::stoi(timestamp_string.substr(17, 2));
+    t.tm_min = std::stoi(timestamp_string.substr(14, 2));
+    t.tm_sec = std::stoi(timestamp_string.substr(17, 2));
     t.tm_isdst = -1;
 
     static const uint64_t kSecondsToNanoSeconds = 1e9;
@@ -574,7 +576,7 @@ std::string KittiParser::getFilenameForEntry(uint64_t entry) const {
 }
 
 Transformation KittiParser::T_camN_vel(int cam_number) const {
-  return camera_calibrations_[cam_number].T_cam0_cam.inverse() * T_cam0_vel_;
+  return camera_calibrations_[cam_number].T_cam0_cam * T_cam0_vel_;
 }
 
 Transformation KittiParser::T_camN_imu(int cam_number) const {
