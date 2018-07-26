@@ -285,9 +285,15 @@ int main(int argc, char** argv) {
   ros::NodeHandle nh;
   ros::NodeHandle nh_private("~");
 
-  const std::string calibration_path = "/Users/helen/data/kitti/2011_09_26";
-  const std::string dataset_path =
-      "/Users/helen/data/kitti/2011_09_26/2011_09_26_drive_0035_sync";
+  if (argc < 3) {
+    std::cout << "Usage: rosrun kitti_to_rosbag kitti_live_node "
+                 "calibration_path dataset_path\n";
+    std::cout << "Note: no trailing slashes.\n";
+    return 0;
+  }
+
+  const std::string calibration_path = argv[1];
+  const std::string dataset_path = argv[2];
 
   kitti::KittiLiveNode node(nh, nh_private, calibration_path, dataset_path);
 
