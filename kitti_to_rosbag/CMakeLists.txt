@@ -4,6 +4,9 @@ project(kitti_to_rosbag)
 find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
 
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+
 set(CMAKE_MACOSX_RPATH 0)
 add_definitions(-std=c++11)
 
@@ -32,7 +35,7 @@ target_link_libraries(kitti_rosbag_converter ${PROJECT_NAME})
 cs_add_executable(tiny_disp_view
   src/tiny_disp_view.cpp
 )
-target_link_libraries(tiny_disp_view ${PROJECT_NAME})
+target_link_libraries(tiny_disp_view ${PROJECT_NAME} ${OpenCV_LIBS})
 
 ##########
 # EXPORT #
